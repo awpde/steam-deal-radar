@@ -30,9 +30,8 @@ APPDETAILS_URL = "https://store.steampowered.com/api/appdetails?appids={ids}&cc=
 WISHLIST_URL = "https://api.steampowered.com/IWishlistService/GetWishlist/v1/?steamid={sid}"
 VANITY_URL = "https://steamcommunity.com/id/{vanity}/?xml=1"
 
-BATCH_DETAIL = 20          # 详情接口每批多少 appid（太大容易被拒）
+BATCH_DETAIL = 20          # 详情接口每批多少 appid（保留：万一哪天批量接口恢复）
 QUICK_PAGES = 2            # 快刷扫几页搜索
-MAX_DETAIL_LOOKUPS = 60    # 单次刷新最多核验多少个 appid
 
 
 class Health:
@@ -140,32 +139,64 @@ def fetch_free_only(settings: dict, health: Health) -> list[GameItem]:
     return rows
 
 
-def fetch_details(appids: list[int], settings: dict, health: Health) -> dict[int, dict]:
+def fetch_details(appids: list[int], settings: dict, health: Health,
+                  max_items: int | None = None, deadline: float | None = None) -> dict[int, dict]:
+    """查详情，用来做最终核验和补全评价信息。
+
+    2026-11-15 实测：Steam 关掉了 appdetails 的批量查询 ——
+    一次传多个 appid 会返回 400 且响应体是 null，单条仍然是 200。
+    所以这里的策略是：先试一次批量（万一以后恢复），不行就逐条查，
+    而且逐条查有数量上限，避免把请求预算烧光。
+    """
+    ids = list(dict.fromkeys(appids))
+    if max_items:
+        ids = ids[:max_items]
     out: dict[int, dict] = {}
-    if not appids:
+    if not ids:
         return out
-    batches = [appids[i:i + BATCH_DETAIL] for i in range(0, len(appids), BATCH_DETAIL)]
-    ok = failed = 0
+
     last_err = ""
-    for batch in batches:
-        url = APPDETAILS_URL.format(ids=",".join(str(a) for a in batch),
+    # ① 先试批量（1 个请求，快）
+    if len(ids) > 1:
+        url = APPDETAILS_URL.format(ids=",".join(str(a) for a in ids),
                                     cc=settings["cc"], lang=settings["lang"])
         res = fetch(url, settings=settings)
+        if res.ok:
+            try:
+                out.update(parse.parse_appdetails(res.text))
+            except Exception:
+                _dump_error("appdetails-batch", res.text)
+        else:
+            last_err = res.error or f"HTTP {res.status}"
+
+    # ② 剩下的逐条查（有上限，连续失败就停手）
+    missing = [a for a in ids if a not in out]
+    fails = 0
+    for appid in missing:
+        if fails >= 3:
+            break
+        if deadline and time.monotonic() > deadline:
+            last_err = last_err or "超出本次刷新时间预算"
+            break
+        url = APPDETAILS_URL.format(ids=appid, cc=settings["cc"], lang=settings["lang"])
+        res = fetch(url, settings=settings)
         if not res.ok:
-            failed += 1
-            last_err = res.error
+            last_err = res.error or f"HTTP {res.status}"
+            fails += 1
             continue
+        fails = 0
         try:
             parsed = parse.parse_appdetails(res.text)
         except Exception:
             _dump_error("appdetails", res.text)
-            failed += 1
             last_err = "解析失败（已存原始响应）"
             continue
-        out.update(parsed)
-        ok += 1
-    health.add("details", "详情核验", failed == 0, 200 if ok else 0,
-               count=len(out), error=last_err if failed else "", via="")
+        if parsed:
+            out.update(parsed)
+
+    got_all = len(out) >= len(ids)
+    health.add("details", f"详情核验（{len(out)}/{len(ids)}）", got_all, 200,
+               count=len(out), error="" if got_all else (last_err or "部分条目未取到"))
     return out
 
 
@@ -214,7 +245,7 @@ def sync_wishlist(steamid: str, settings: dict) -> dict:
     db.set_meta("wishlist_steamid", sid)
     # 顺便把愿望单里正在打折的补上价格信息
     appids = [i["appid"] for i in items][:120]
-    details = fetch_details(appids, settings, Health())
+    details = fetch_details(appids, settings, Health(), max_items=20)
     wl_items = []
     for aid, d in details.items():
         if d.get("discount"):
@@ -321,16 +352,19 @@ def refresh(mode: str = "quick", *, trigger: str = "manual") -> dict:
 
     candidates = parse.dedupe([*featured.get("specials", []), *free_items, *search_items])
 
-    # 挑出需要二次核验的：可能限免的（价格 0 / 折扣 100 / 没有折扣块却显示免费）
-    need_check = [
-        g.appid for g in candidates
-        if (g.discount >= 90 or g.final_cents == 0) and g.kind != "freeweekend"
-    ]
+    # 只核验「可能限免」的（到手价 0 元 / 100% 折扣）。
+    # 90% 这种普通折扣就不查了 —— 详情接口现在只能逐条查，每条 1 秒多，得省着用。
+    need_check = [g.appid for g in candidates if g.final_cents == 0 or g.discount >= 100]
     wishlist_appids = db.wishlist_appids()
-    need_check += [a for a in wishlist_appids if a not in need_check]
-    need_check = list(dict.fromkeys(need_check))[:MAX_DETAIL_LOOKUPS]
+    if mode == "deep":
+        # 深刷时顺便把愿望单里的补齐价格信息（快刷不做，太费请求）
+        need_check += [a for a in wishlist_appids if a not in need_check]
 
-    details = fetch_details(need_check, settings, health) if need_check else {}
+    detail_limit = int(settings.get("detail_lookup_limit") or 12)
+    need_check = list(dict.fromkeys(need_check))[:detail_limit]
+    details = (fetch_details(need_check, settings, health, max_items=detail_limit,
+                             deadline=deadline)
+               if need_check else {})
 
     groups = rules.classify(
         candidates,

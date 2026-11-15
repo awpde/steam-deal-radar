@@ -1,5 +1,17 @@
 # 版本记录
 
+## v1.0.1 (2026-11-15)
+
+**修复：适配 Steam 关闭 appdetails 批量查询**
+
+上线当天实测发现，`/api/appdetails?appids=570,227300` 这类多 appid 请求开始返回
+`HTTP 400` 且响应体是 `null`，单条请求仍然 200。原来的批量核验逻辑因此全线失败。
+
+- 改为「先试一次批量，失败则逐条查」，两种接口形态都能活
+- 逐条查询增加上限（`detail_lookup_limit`，默认 12 条）和连续失败熔断
+- 只对「可能限免」的条目做核验（0 元 / 100% 折扣），普通折扣不再浪费请求
+- 快刷耗时从 19 秒降到 5.6 秒
+
 ## v1.0.0 (2026-11-15)
 
 首个可用版本。
@@ -30,6 +42,7 @@
 | `featuredcategories` 的 `specials` 只有 10 条，但带 `discount_expiration` | 唯一免费的截止时间来源 |
 | `search/results/?specials=1&infinite=1` 返回 JSON 外壳 + HTML 片段，全站 9661 条，100 条/页 | 覆盖全，但必须解析 HTML，且**没有**截止时间 |
 | `appdetails` 传错 `filters` 参数会让整个响应变成 `null` | 不要用 filters |
+| `appdetails` 从 2026-11-15 起**不再支持多 appid 批量**，返回 400 + `null` | 必须逐条查，且要限制条数 |
 | Steam 商店域名在国内会几十分钟级别的时通时不通 | 必须有缓存 + 探针 + 代理切换 |
 | 搜索结果里 `maxprice=free&specials=1` 经常返回 0 条 | 说明当下确实没有限免，不是接口坏了 |
 | PowerShell 的 `-EncodedCommand` 在某些安全策略下会卡死 | 桌面通知改用 ctypes 调 Shell_NotifyIcon |

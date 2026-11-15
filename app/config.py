@@ -33,6 +33,7 @@ DEFAULT_SETTINGS: dict = {
     "auto_refresh_minutes": 30,                # 0 = 关闭定时刷新
     "refresh_on_start": True,
     "deep_pages": 20,                          # 深刷最多扫多少页（每页 100 条）
+    "detail_lookup_limit": 12,                 # 单次刷新最多逐条核验多少个 appid（详情接口限流）
     "max_items": 60,                           # 每个榜单最多展示多少条
     # 提醒
     "notify_enabled": True,
