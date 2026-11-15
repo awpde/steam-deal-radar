@@ -1,0 +1,12 @@
+# .bat 用 GBK 编码 + CRLF 换行才能被 cmd.exe 正确解析，
+# 所以按二进制处理，禁止 git 做任何换行/编码转换，保证 checkout 出来字节完全一致。
+*.bat -text
+*.cmd -text
+
+# Python 和前端文件统一用 LF
+*.py text eol=lf
+*.js   text eol=lf
+*.css  text eol=lf
+*.html text eol=lf
+*.md   text eol=lf
+*.json text eol=lf
