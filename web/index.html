@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Steam 限免 &amp; 折扣雷达</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">SR</div>
+    <div class="brandtext">
+      <h1>Steam 限免 &amp; 折扣雷达</h1>
+      <div class="sub" id="statusLine">正在读取数据…</div>
+    </div>
+  </div>
+  <div class="actions">
+    <button id="btnQuick" class="btn primary">刷新</button>
+    <button id="btnDeep" class="btn ghost" title="多扫几十页，覆盖更全，耗时约 1-3 分钟">深度刷新</button>
+    <button id="btnSettings" class="btn ghost" title="设置">设置</button>
+  </div>
+</header>
+
+<main>
+  <div id="alert" class="alert hidden"></div>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="ftk">限时免费领取 <span class="pill" id="cnt-ftk">0</span></button>
+    <button class="tab" data-tab="deals">折扣精选 <span class="pill" id="cnt-deals">0</span></button>
+    <button class="tab" data-tab="wishlist">我的愿望单 <span class="pill" id="cnt-wl">0</span></button>
+    <button class="tab" data-tab="weekend">免费周末 <span class="pill" id="cnt-weekend">0</span></button>
+    <div class="spacer"></div>
+    <select id="sortBy" class="select" title="排序方式">
+      <option value="score">按推荐度</option>
+      <option value="discount">按折扣力度</option>
+      <option value="price">按价格从低到高</option>
+      <option value="review">按好评率</option>
+    </select>
+    <button id="btnExport" class="btn tiny">导出 CSV</button>
+  </nav>
+
+  <section id="panel" class="grid"></section>
+
+  <details class="health">
+    <summary>数据源健康状态</summary>
+    <div id="healthList" class="health-list"></div>
+  </details>
+</main>
+
+<dialog id="settingsDlg">
+  <form method="dialog" class="dlg">
+    <h2>设置</h2>
+
+    <fieldset>
+      <legend>网络</legend>
+      <label class="row">
+        <input type="checkbox" id="setProxyEnabled">
+        <span>使用代理（加速器）</span>
+      </label>
+      <label class="row col">
+        <span class="lbl">代理地址</span>
+        <input type="text" id="setProxyUrl" placeholder="http://127.0.0.1:7890">
+      </label>
+      <p class="hint">不开加速器时留空即可。常见端口：Clash 7890 / v2rayN 10809 / Steam++ 443。</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>提醒</legend>
+      <label class="row"><input type="checkbox" id="setNotify"><span>发现新的限免时弹桌面通知</span></label>
+      <label class="row"><input type="checkbox" id="setAutostart"><span>开机自动启动（后台静默运行）</span></label>
+      <div class="row">
+        <button type="button" class="btn tiny" id="btnTestNotify">发送测试通知</button>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>刷新</legend>
+      <label class="row col">
+        <span class="lbl">自动刷新间隔（分钟，0 = 关闭）</span>
+        <input type="number" id="setInterval" min="0" max="720" step="5">
+      </label>
+      <label class="row col">
+        <span class="lbl">深度刷新页数（每页 100 条）</span>
+        <input type="number" id="setDeepPages" min="1" max="97" step="1">
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>我的愿望单</legend>
+      <label class="row col">
+        <span class="lbl">SteamID 或主页链接</span>
+        <input type="text" id="setSteamId" placeholder="粘贴 https://steamcommunity.com/id/xxx/ 或 7656119…">
+      </label>
+      <div class="row">
+        <button type="button" class="btn tiny" id="btnSyncWishlist">同步愿望单</button>
+        <span class="hint" id="wishlistMsg"></span>
+      </div>
+      <p class="hint">愿望单必须是「公开」状态。同步后，「我的愿望单」标签页会显示你在等的游戏里正在打折的。</p>
+    </fieldset>
+
+    <div class="dlg-actions">
+      <span class="hint" id="saveMsg"></span>
+      <button type="button" class="btn ghost" id="btnCloseSettings">关闭</button>
+      <button type="button" class="btn primary" id="btnSaveSettings">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

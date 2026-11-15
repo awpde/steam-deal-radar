@@ -1,0 +1,9 @@
+# 本地数据（缓存、日志、报错样本），不需要提交
+data/
+*.pyc
+__pycache__/
+.venv/
+venv/
+.idea/
+.vscode/
+*.log
