@@ -30,6 +30,8 @@ def main() -> int:
         sys.executable, "-m", "PyInstaller",
         "--noconfirm", "--clean",
         "--onefile",
+        # 不要控制台窗口：双击直接出应用窗口，像一个正常的桌面软件
+        "--windowed",
         "--name", NAME,
         # 网页界面必须打进去，否则 exe 启动后打不开页面
         "--add-data", f"{ROOT / 'web'}{';' if sys.platform == 'win32' else ':'}web",
@@ -38,8 +40,11 @@ def main() -> int:
         "--exclude-module", "tkinter",
         "--exclude-module", "unittest",
         "--exclude-module", "pydoc",
-        str(ROOT / "run.py"),
     ]
+    icon = ROOT / "docs" / "icon.ico"
+    if icon.exists():
+        args += ["--icon", str(icon)]
+    args.append(str(ROOT / "run.py"))
     print("正在打包，第一次会慢一些（1~3 分钟）…")
     result = subprocess.run(args, cwd=ROOT)
     if result.returncode != 0:

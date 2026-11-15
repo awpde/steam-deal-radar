@@ -18,13 +18,19 @@
 ### 方式 A：直接用 exe（推荐，发给别人也用这个）
 
 1. 下载 `SteamDealRadar.exe`（在 [Releases](https://github.com/awpde/steam-deal-radar/releases) 页面，或问我要）
-2. **双击它**，稍等两三秒，浏览器会自动打开界面
+2. **双击它**，两三秒后会弹出一个应用窗口（没有地址栏、没有标签页，就是一个软件窗口）
 3. 点「刷新」
 
 单个文件，9 MB 左右，不需要装 Python、不需要装任何东西。第一次运行会在这个 exe
-旁边自动建一个 `data` 文件夹（存缓存和设置），删掉它就等于恢复出厂设置。
+旁边自动建一个 `data` 文件夹（存缓存、图片和设置），删掉它就等于恢复出厂设置。
 
-> 关掉那个黑色窗口 = 退出程序；想常驻就打开设置里的「开机自动启动」。
+关掉窗口 = 退出程序。想常驻就打开设置里的「开机自动启动」（会在后台静默跑，不弹窗口）。
+
+> 窗口是用系统自带的 Edge 内核渲染的（`--app` 模式），所以看起来像独立软件，
+> 但不需要额外安装运行库。如果你更习惯浏览器标签页，启动时加 `--browser` 参数即可。
+
+> ⚠️ 不要直接双击 `web\index.html`。那是网页本体，需要后台服务配合，
+> 单独打开只会看到一个灰扑扑的页面（程序已经做了提示页，会告诉你该怎么开）。
 
 ### 方式 B：源码运行
 
@@ -92,6 +98,15 @@ http://127.0.0.1:8731
 ---
 
 ## 四、常见问题
+
+**Q：打开后整页灰白、没有任何图片？**
+
+大概率是你在文件夹里**双击了 `web\index.html`**。那是网页本体，需要后台服务喂数据，
+单独打开时样式和图片的路径都会失效（浏览器会去本地磁盘找 `/static/style.css`，找不到）。
+关掉它，双击 `SteamDealRadar.exe` 或 `启动.bat` 就好。
+
+现在这个页面已经加了提示：如果你真的直接打开了 html，它会告诉你正确做法，
+而不是显示一个灰页面。
 
 **Q：封面图一开始是灰色方块 / 加载有点慢？**
 
@@ -203,12 +218,14 @@ steam-deal-radar/
 │  ├─ steam.py           取数编排 + 坏了怎么办
 │  ├─ db.py              SQLite 缓存与「新增」识别
 │  ├─ images.py          封面图抓取与本地缓存（绕过连不上的图片域名）
+│  ├─ desktop.py         独立应用窗口（Edge/Chrome 的 --app 模式，无地址栏）
 │  ├─ notify.py          桌面通知 + 开机自启
 │  ├─ toast_win.py       Windows 气泡通知（纯 ctypes，不依赖外部程序）
 │  └─ server.py          本地 HTTP 服务
 ├─ web/                  界面（单页，无框架）
 ├─ tools/
-│  └─ make_launcher.py   按 GBK+CRLF 重新生成 启动.bat（被编辑器改坏时用）
+│  ├─ make_launcher.py   按 GBK+CRLF 重新生成 启动.bat（被编辑器改坏时用）
+│  └─ make_icon.py       生成程序图标 docs/icon.ico（纯标准库画图）
 ├─ tests/
 │  ├─ fixtures/          真实抓取的响应样本（冻结，用于回归测试）
 │  └─ test_parse.py      17 个测试
@@ -223,6 +240,12 @@ python -m unittest discover -s tests -v
 
 # 只刷新一次并打印结果
 python run.py --refresh-once
+
+# 用默认浏览器打开（而不是独立窗口）
+python run.py --browser
+
+# 后台静默运行，不显示界面（开机自启用的就是这个）
+python run.py --silent
 
 # 换个端口起服务
 python run.py --port 8800

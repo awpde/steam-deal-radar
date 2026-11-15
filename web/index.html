@@ -3,10 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>Steam 限免 &amp; 折扣雷达</title>
-<link rel="stylesheet" href="/static/style.css">
+<!-- 用相对路径：万一被放到子路径下也能正常加载 -->
+<link rel="stylesheet" href="static/style.css">
 </head>
 <body>
+
+<!-- 直接双击 index.html 打开时显示这段（此时没有服务，样式和数据都拿不到） -->
+<div id="launchHint" hidden>
+  <div style="max-width:640px;margin:8vh auto;background:#1b232e;border:1px solid #2a3542;border-radius:14px;padding:28px 30px;line-height:1.8;">
+    <h1 style="font-size:19px;margin:0 0 6px;color:#e6edf3;font-weight:600;">这个页面需要通过程序打开</h1>
+    <p style="margin:0 0 18px;color:#8fa3b8;font-size:13px;">
+      你刚才直接打开了网页文件，它本身不含数据，也连不上后台服务，所以整页是灰的、没有图片。
+    </p>
+    <div style="background:#12161c;border:1px solid #2a3542;border-radius:10px;padding:14px 16px;margin-bottom:18px;">
+      <p style="margin:0;color:#e6edf3;font-size:13.5px;">正确做法（二选一）：</p>
+      <p style="margin:8px 0 0;color:#c9d6e2;font-size:13.5px;">
+        ① 双击文件夹里的 <b style="color:#66c0f4;">SteamDealRadar.exe</b><br>
+        ② 或者双击 <b style="color:#66c0f4;">启动.bat</b>
+      </p>
+    </div>
+    <p style="margin:0;color:#64748b;font-size:12px;">
+      程序会自动弹出一个窗口并打开界面，不需要你自己点网页文件。
+    </p>
+  </div>
+</div>
 
 <header class="topbar">
   <div class="brand">
@@ -47,6 +69,10 @@
     <summary>数据源健康状态</summary>
     <div id="healthList" class="health-list"></div>
   </details>
+
+  <div class="footer-note">
+    <span id="verLine">本地服务</span>
+  </div>
 </main>
 
 <dialog id="settingsDlg">
@@ -108,6 +134,30 @@
   </form>
 </dialog>
 
-<script src="/static/app.js"></script>
+<script>
+// 兜底：如果有人直接双击 index.html（file:// 方式），给出明确指引，
+// 而不是显示一个没有样式、没有图片的灰页面。
+(function () {
+  if (location.protocol !== 'file:') return;
+  var show = function () {
+    var hint = document.getElementById('launchHint');
+    var bar = document.querySelector('.topbar');
+    var main = document.querySelector('main');
+    if (bar) bar.style.display = 'none';
+    if (main) main.style.display = 'none';
+    if (hint) hint.hidden = false;
+    document.body.style.margin = '0';
+    document.body.style.background = '#12161c';
+    document.body.style.color = '#e6edf3';
+    document.body.style.fontFamily = '"Microsoft YaHei","PingFang SC",system-ui,sans-serif';
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', show);
+  } else {
+    show();
+  }
+})();
+</script>
+<script src="static/app.js"></script>
 </body>
 </html>

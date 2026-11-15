@@ -176,6 +176,13 @@ function render() {
     ? health.map((h) => `<span class="src ${h.ok ? 'ok' : 'bad'}">${esc(h.label)}${h.ok ? ` · ${h.count} 条` : ' · 失败'}${h.via ? ` · ${h.via === 'proxy' ? '代理' : '直连'}` : ''}</span>`).join('')
     : '<span class="src">暂无记录（还没成功刷新过）</span>';
 
+  // 底部版本信息：出问题时一眼看出跑的是哪个版本、数据有几条
+  const ver = $('#verLine');
+  if (ver) {
+    const total = (st.counts.ftk || 0) + (st.counts.deals || 0);
+    ver.textContent = `v${st.version || '?'} · 本地服务正常 · 共 ${total} 条数据 · 更新于 ${st.last_success_text}`;
+  }
+
   // 按钮状态
   const running = st.job && st.job.running;
   $('#btnQuick').disabled = running;

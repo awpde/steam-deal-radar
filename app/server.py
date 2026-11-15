@@ -16,7 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from . import config, db, images, notify, steam
+from . import __version__, config, db, images, notify, steam
 
 JOB: dict = {"running": False, "mode": None, "started": 0, "result": None, "error": ""}
 JOB_LOCK = threading.Lock()
@@ -71,6 +71,7 @@ def build_state() -> dict:
 
     limit = int(settings["max_items"])
     return {
+        "version": __version__,
         "settings": settings,
         "status": status,
         "updated_at": JOB.get("finished_at") or last_success or 0,
