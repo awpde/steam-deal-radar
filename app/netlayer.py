@@ -240,7 +240,8 @@ def fetch_asset(url: str, *, settings: dict, timeout: float = 8.0,
             except urllib.error.HTTPError as exc:
                 last_status = exc.code
                 if 400 <= exc.code < 500:
-                    break
+                    # 4xx = 这个地址确实没有这张图，换通道也没用，直接交给下一个候选地址
+                    return False, last_status, b"", ""
             except (urllib.error.URLError, TimeoutError, OSError):
                 last_status = 0
     return False, last_status, b"", ""

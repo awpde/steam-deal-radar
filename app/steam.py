@@ -392,7 +392,7 @@ def refresh(mode: str = "quick", *, trigger: str = "manual") -> dict:
         # 后台预热封面图，界面滚动时才不会一张张慢慢出（失败也无所谓）
         try:
             from . import images
-            images.warm([g.appid for g in (*ftk, *deals)], settings,
+            images.warm([(g.appid, g.cover) for g in (*ftk, *deals)], settings,
                         limit=int(settings.get("max_items") or 60))
         except Exception:
             pass

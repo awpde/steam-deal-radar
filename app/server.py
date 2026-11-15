@@ -266,7 +266,10 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, b"bad appid", "text/plain; charset=utf-8")
             return
         appid = int(appid_raw)
-        got = images.get_image(appid, config.load_settings())
+        # 带上数据库里的原始封面地址：新游戏只有"带哈希"的那条路径才有图
+        rows = db.query("SELECT cover FROM games WHERE appid = ?", (appid,))
+        cover = (rows[0]["cover"] if rows else "") or ""
+        got = images.get_image(appid, config.load_settings(), cover)
         if not got:
             # 让前端走占位图，不返回错误页
             self._send(404, b"no image", "text/plain; charset=utf-8")
