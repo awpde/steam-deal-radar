@@ -250,7 +250,7 @@ function fillSettings(st) {
   $('#setProxyEnabled').checked = !!s.proxy_enabled;
   $('#setProxyUrl').value = s.proxy_url || '';
   $('#setNotify').checked = !!s.notify_enabled;
-  $('#setAutostart').checked = !!s.autostart;
+  $('#setAutostart').checked = !!st.autostart;   // 以注册表里的真实状态为准
   $('#setInterval').value = s.auto_refresh_minutes ?? 30;
   $('#setDeepPages').value = s.deep_pages ?? 20;
   $('#setSteamId').value = s.wishlist_steamid || '';
