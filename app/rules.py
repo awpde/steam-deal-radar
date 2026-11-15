@@ -95,17 +95,23 @@ def classify(
         else:
             ignored.append(it)
 
-    # 折扣榜打分；顺带处理「详情接口挂了」时的矮子里拔将军
+    # 折扣榜打分；顺带把「详情接口挂了时明显不是游戏的东西」剔掉
+    clean_deals: list[GameItem] = []
     for it in deals:
-        value = score(it, now)
         if it.appid not in details and EXTRA_NAME_RE.search(it.name or ""):
             it.extra["suspect_extra"] = True
-            it.extra["note"] = "名字像是原声/DLC，未能核实（详情接口不可用），已降权"
-            value *= 0.45
+            it.extra["note"] = "名字像是原声/DLC，且无法核实，已从推荐中移除"
+            ignored.append(it)
+            continue
+        value = score(it, now)
+        if 0 < (it.orig_cents or 0) < 1500:
+            value *= 0.7          # 原价本来就很低的小玩意儿，降权
         if it.appid in wishlist_appids:
             value *= 1.18
             it.extra["in_wishlist"] = True
         it.extra["score"] = round(value, 3)
+        clean_deals.append(it)
+    deals = clean_deals
 
     ftk.sort(key=lambda g: (-(g.review_pct or 0), g.name))
     deals.sort(key=lambda g: -g.extra.get("score", 0))
@@ -122,7 +128,7 @@ def score(item: GameItem, now: float | None = None) -> float:
     year = item.release_year or 0
     age = (time.gmtime(now).tm_year - year) if year else 99
     fresh = 1.0 if age <= 2 else (0.75 if age <= 5 else 0.5)
-    base = 0.45 * disc + 0.30 * review + 0.15 * volume + 0.10 * fresh
+    base = 0.32 * disc + 0.28 * review + 0.25 * volume + 0.15 * fresh
     if (
         item.review_pct is not None
         and item.review_pct < HARD_MIN_REVIEW

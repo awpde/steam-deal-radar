@@ -36,6 +36,12 @@ def build_state() -> dict:
     games = db.load_games(limit=3000)
     wishlist = db.wishlist_appids()
 
+    # 只展示「最近一次成功刷新」里抓到的条目。
+    # 否则历史遗留的旧记录会带着过期的评分混进榜单，看起来像是推荐坏了。
+    if last_success:
+        cutoff = last_success - 180
+        games = [g for g in games if (g.get("updated_at") or 0) >= cutoff]
+
     ftk = [g for g in games if g["kind"] == "ftk"]
     deals = [g for g in games if g["kind"] == "deal"]
     weekend = [g for g in games if g["kind"] == "freeweekend"]
