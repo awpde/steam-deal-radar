@@ -117,8 +117,11 @@ def _run_script_path() -> Path:
 
 
 def autostart_command() -> str:
-    """pythonw 启动，不会闪黑框。"""
-    return f'"{config.python_gui_exe()}" "{_run_script_path()}" --silent'
+    """pythonw（源码运行）或 exe 自身（打包后）启动，都不会闪黑框。"""
+    exe = config.python_gui_exe()
+    if config.FROZEN:
+        return f'"{exe}" --silent'
+    return f'"{exe}" "{_run_script_path()}" --silent'
 
 
 def autostart_enabled() -> bool:

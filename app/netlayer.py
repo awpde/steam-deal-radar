@@ -209,3 +209,38 @@ def fetch_many(
 ) -> list[FetchResult]:
     """顺序抓取多个 URL（保持限速，不并发）。"""
     return [fetch(u, settings=settings, **kwargs) for u in urls]
+
+
+def fetch_asset(url: str, *, settings: dict, timeout: float = 8.0,
+                retries: int = 1) -> tuple[bool, int, bytes, str]:
+    """抓图片这类静态资源：不走全局限速。
+
+    图片在 CDN 上（和 store 接口不是同一套限流），浏览器一次要几十张，
+    如果还按 1.2 秒一张排队，页面要等一分多钟。所以这里单独开一条通道。
+    返回 (是否成功, 状态码, 内容, Content-Type)。
+    """
+    use_proxy = bool(settings.get("proxy_enabled"))
+    proxy_url = settings.get("proxy_url", "")
+    plans = [use_proxy] + ([not use_proxy] if proxy_url else [])
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Accept": "image/avif,image/webp,image/*,*/*;q=0.8",
+        "Accept-Encoding": "gzip, deflate",
+    }
+    last_status = 0
+    for plan in plans:
+        opener = _build_opener(plan, proxy_url)
+        for _ in range(retries + 1):
+            try:
+                req = urllib.request.Request(url, headers=headers)
+                with opener.open(req, timeout=timeout) as resp:
+                    raw = resp.read()
+                    ctype = resp.headers.get("Content-Type", "image/jpeg")
+                    return True, resp.status, raw, ctype
+            except urllib.error.HTTPError as exc:
+                last_status = exc.code
+                if 400 <= exc.code < 500:
+                    break
+            except (urllib.error.URLError, TimeoutError, OSError):
+                last_status = 0
+    return False, last_status, b"", ""

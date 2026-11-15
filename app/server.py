@@ -16,7 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from . import config, db, notify, steam
+from . import config, db, images, notify, steam
 
 JOB: dict = {"running": False, "mode": None, "started": 0, "result": None, "error": ""}
 JOB_LOCK = threading.Lock()
@@ -196,6 +196,9 @@ class Handler(BaseHTTPRequestHandler):
         if path.startswith("/static/"):
             self._serve_file(path[len("/static/"):])
             return
+        if path.startswith("/api/img/"):
+            self._serve_image(path.rsplit("/", 1)[-1])
+            return
         if path == "/api/state":
             self._json(build_state())
             return
@@ -254,6 +257,29 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         self._send(404, b"not found", "text/plain; charset=utf-8")
+
+    # ---------- 封面图（本地缓存，浏览器不直接访问 Steam CDN）
+    def _serve_image(self, appid_raw: str) -> None:
+        appid_raw = (appid_raw or "").split(".")[0]
+        if not appid_raw.isdigit():
+            self._send(404, b"bad appid", "text/plain; charset=utf-8")
+            return
+        appid = int(appid_raw)
+        got = images.get_image(appid, config.load_settings())
+        if not got:
+            # 让前端走占位图，不返回错误页
+            self._send(404, b"no image", "text/plain; charset=utf-8")
+            return
+        data, ctype = got
+        self.send_response(200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "public, max-age=604800")   # 7 天
+        self.end_headers()
+        try:
+            self.wfile.write(data)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     # ---------- 导出
     def _export(self, what: str) -> None:

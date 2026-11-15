@@ -1,5 +1,25 @@
 # 版本记录
 
+## v1.1.0 (2026-11-15)
+
+**新增：封面图**
+
+之前卡片只有名字和价格。原因不是没解析，而是 Steam 返回的图片域名
+（`shared.st.dl.eccdnx.com`）在国内常常解析到一个不通的地址（实测返回 0 字节）。
+而同一个游戏的图片在 `cdn.akamai.steamstatic.com` 上是正常的。
+
+- 不再信任 Steam 给的图片地址，改成按 appid 拼可用的 CDN 地址并逐个尝试
+- 新增 `/api/img/<appid>` 本地接口：浏览器只跟本机通信，图片由程序代理抓取
+- 抓到后存 `data/images/`，第二次打开秒开，离线也能看已缓存的图
+- 刷新完成后后台用 4 个线程预热封面，滚动时才不会一张张慢慢出
+
+**新增：单文件 exe**
+
+- `python build_exe.py` → `dist/SteamDealRadar.exe`（约 9.4 MB，PyInstaller onefile）
+- 双击即用，不需要装 Python，可以直接发给别人
+- 打包后数据写在 exe 旁边的 `data/` 目录，卸载 = 删掉两个东西
+- 开机自启在打包版下会注册 exe 自身（`"SteamDealRadar.exe" --silent`）
+
 ## v1.0.1 (2026-11-15)
 
 **修复：适配 Steam 关闭 appdetails 批量查询**

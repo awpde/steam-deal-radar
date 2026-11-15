@@ -13,7 +13,20 @@
 
 ---
 
-## 一、怎么用（三步）
+## 一、怎么用
+
+### 方式 A：直接用 exe（推荐，发给别人也用这个）
+
+1. 下载 `SteamDealRadar.exe`（在 [Releases](https://github.com/awpde/steam-deal-radar/releases) 页面，或问我要）
+2. **双击它**，稍等两三秒，浏览器会自动打开界面
+3. 点「刷新」
+
+单个文件，9 MB 左右，不需要装 Python、不需要装任何东西。第一次运行会在这个 exe
+旁边自动建一个 `data` 文件夹（存缓存和设置），删掉它就等于恢复出厂设置。
+
+> 关掉那个黑色窗口 = 退出程序；想常驻就打开设置里的「开机自动启动」。
+
+### 方式 B：源码运行
 
 **第 1 步：装 Python**
 
@@ -79,6 +92,15 @@ http://127.0.0.1:8731
 ---
 
 ## 四、常见问题
+
+**Q：封面图一开始是灰色方块 / 加载有点慢？**
+
+图片是程序自己去 Steam 的图片服务器抓的，抓过的会存在本地 `data/images/`，
+第二次打开就是秒开。第一次打开一个页面前十几张图一般 3~5 秒内陆续出来。
+
+如果一直是灰块，说明这台机器的网络连不上图片服务器（Steam 会给一个在国内常常
+解析不通的图片域名，程序已经自动换成了能通的 `cdn.akamai.steamstatic.com`，
+但少数网络环境下两个都不通）。开加速器并在设置里勾上代理，再刷新一次即可。
 
 **Q：双击 `启动.bat` 后，黑窗口里刷出一堆「不是内部或外部命令」怎么办？**
 
@@ -168,24 +190,29 @@ SQLite 缓存 + 桌面通知
 
 ```
 steam-deal-radar/
-├─ 启动.bat              双击这个
+├─ SteamDealRadar.exe    打包好的单文件（发布版，不在仓库里）
+├─ 启动.bat              源码运行方式下双击这个
 ├─ run.py                程序入口（本地服务 + 定时任务）
+├─ build_exe.py          打包脚本，产出 dist/SteamDealRadar.exe
 ├─ app/
-│  ├─ config.py          所有可调参数（域名、超时、阈值）
+│  ├─ config.py          所有可调参数 + 源码/打包两种运行方式的路径处理
 │  ├─ netlayer.py        网络：重试、退避、压缩、直连/代理切换、全局限速
 │  ├─ parse.py           解析：三种 Steam 响应格式 → 统一结构
 │  ├─ models.py          统一的数据结构 GameItem
 │  ├─ rules.py           规则引擎：限免判定、折扣打分（纯函数）
 │  ├─ steam.py           取数编排 + 坏了怎么办
 │  ├─ db.py              SQLite 缓存与「新增」识别
+│  ├─ images.py          封面图抓取与本地缓存（绕过连不上的图片域名）
 │  ├─ notify.py          桌面通知 + 开机自启
 │  ├─ toast_win.py       Windows 气泡通知（纯 ctypes，不依赖外部程序）
 │  └─ server.py          本地 HTTP 服务
 ├─ web/                  界面（单页，无框架）
+├─ tools/
+│  └─ make_launcher.py   按 GBK+CRLF 重新生成 启动.bat（被编辑器改坏时用）
 ├─ tests/
 │  ├─ fixtures/          真实抓取的响应样本（冻结，用于回归测试）
 │  └─ test_parse.py      17 个测试
-└─ data/                 运行时生成：数据库、日志、报错样本（不提交）
+└─ data/                 运行时生成：数据库、日志、图片缓存、报错样本（不提交）
 ```
 
 ## 七、给改代码的人
@@ -199,7 +226,14 @@ python run.py --refresh-once
 
 # 换个端口起服务
 python run.py --port 8800
+
+# 打包成单文件 exe（产物在 dist/SteamDealRadar.exe）
+pip install pyinstaller
+python build_exe.py
 ```
+
+打包后的路径规则：网页和样本会被解压到临时目录，`data/` 则写在 **exe 旁边**，
+这样用户能自己备份和删除，卸载就是删掉 exe 和 data 文件夹。
 
 **Steam 改版了怎么办？**
 

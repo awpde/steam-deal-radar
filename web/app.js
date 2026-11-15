@@ -68,7 +68,9 @@ function currentList() {
 function cardHtml(g, kind) {
   const isFtk = kind === 'ftk';
   const isWeekend = kind === 'weekend';
-  const cover = g.cover && !g.cover.startsWith('data:') ? g.cover : '';
+  // 图片统一走本地接口：Steam 直给的图片域名在国内常常解析不通，
+  // 本地服务会自己选能用的 CDN 抓下来并缓存（见 app/images.py）
+  const cover = `/api/img/${g.appid}`;
   const initial = esc((g.name || '?').slice(0, 2));
   const badge = isFtk
     ? '<span class="badge free">限时免费</span>'

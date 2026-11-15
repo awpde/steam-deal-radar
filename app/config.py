@@ -11,16 +11,24 @@ import sys
 import threading
 from pathlib import Path
 
-# 项目根目录（app/config.py 的上一级）
-ROOT = Path(__file__).resolve().parent.parent
+# 路径分两种运行方式：
+#   源码运行 → ROOT 是项目目录
+#   打包成 exe → 代码和网页被解压到临时目录(_MEIPASS)，数据要写在 exe 旁边（用户能找到、能备份）
+FROZEN = bool(getattr(sys, "frozen", False))
+if FROZEN:
+    ROOT = Path(sys.executable).resolve().parent
+    RES_DIR = Path(getattr(sys, "_MEIPASS", ROOT))
+else:
+    ROOT = Path(__file__).resolve().parent.parent
+    RES_DIR = ROOT
 
 DATA_DIR = ROOT / "data"
-WEB_DIR = ROOT / "web"
+WEB_DIR = RES_DIR / "web"
 SETTINGS_FILE = DATA_DIR / "settings.json"
 DB_FILE = DATA_DIR / "radar.db"
 LOG_DIR = DATA_DIR / "logs"
 ERROR_DIR = DATA_DIR / "errors"      # 解析失败时保存原始响应，便于事后定位
-SAMPLE_DIR = ROOT / "tests" / "fixtures"
+SAMPLE_DIR = RES_DIR / "tests" / "fixtures"
 
 DEFAULT_SETTINGS: dict = {
     # 网络
@@ -105,6 +113,8 @@ def save_settings(patch: dict) -> dict:
 
 def python_gui_exe() -> str:
     """返回不带控制台窗口的解释器路径（用于开机自启，避免每次弹黑框）。"""
+    if FROZEN:
+        return str(Path(sys.executable).resolve())
     exe = Path(sys.executable)
     candidate = exe.with_name("pythonw.exe")
     return str(candidate if candidate.exists() else exe)

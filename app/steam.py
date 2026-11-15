@@ -389,6 +389,13 @@ def refresh(mode: str = "quick", *, trigger: str = "manual") -> dict:
         db.set_meta("last_health", json.dumps(health.to_list(), ensure_ascii=False))
         new_ftk = [f for f in fresh if f["kind"] == KIND_FTK]
         new_deals = [f for f in fresh if f["kind"] == KIND_DEAL]
+        # 后台预热封面图，界面滚动时才不会一张张慢慢出（失败也无所谓）
+        try:
+            from . import images
+            images.warm([g.appid for g in (*ftk, *deals)], settings,
+                        limit=int(settings.get("max_items") or 60))
+        except Exception:
+            pass
     else:
         new_ftk, new_deals = [], []
         if not any(s["ok"] for s in health.sources.values()):
